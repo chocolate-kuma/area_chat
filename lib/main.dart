@@ -1,11 +1,15 @@
 import 'dart:convert';
 import 'dart:math';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_chat_types/flutter_chat_types.dart' as types;
 import 'package:flutter_chat_ui/flutter_chat_ui.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-void main() {
-  runApp(const MyApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -34,22 +38,25 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final List<types.Message> _messages = [];
-  final _user = const types.User(id: '82091008-a484-4a89-ae75-a22bf8d6f3ac');
+  final _user = const types.User(
+    id: '82091008-a484-4a89-ae75-a22bf8d6f3ac',
+    firstName: 'aaa',
+  );
   final _other = const types.User(
       id: 'otheruser',
       firstName: "テスト",
-      lastName: "太郎",
       imageUrl:
           "https://pbs.twimg.com/profile_images/1335856760972689408/Zeyo7jdq_bigger.jpg");
 
-@override
+  @override
   void initState() {
     super.initState();
+    final otherMessage = 'こんにちは！';
     _addMessage(types.TextMessage(
       author: _other,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       id: randomString(),
-      text: "テストです。",
+      text: otherMessage,
     ));
   }
 
@@ -72,14 +79,20 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _handleSendPressed(types.PartialText message) {
+  Future<void> _handleSendPressed(types.PartialText message) async {
     final textMessage = types.TextMessage(
       author: _user,
       createdAt: DateTime.now().millisecondsSinceEpoch,
       id: randomString(),
       text: message.text,
     );
-
+    final roomID = '1234';
     _addMessage(textMessage);
+    await FirebaseFirestore.instance
+        .collection('chats')
+        .doc(roomID)
+        .collection('messages')
+        .doc()
+        .set({'user_name': _user.firstName, 'message': message.text});
   }
 }
